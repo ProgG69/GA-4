@@ -3,6 +3,32 @@ from pydantic import BaseModel
 from typing import List
 
 app = FastAPI()
+This is almost certainly a CORS error in disguise — the assignment's evaluation tool (running in a browser) is being blocked from calling your Render API. Here's exactly how to fix it.
+The Root Cause
+
+When a browser (or browser-based evaluator) sends a request to your API from a different origin (a different website/domain), it first sends a "preflight" check. Without CORS headers in your FastAPI app, Render rejects it and the browser reports it as a NetworkError.
+The Fix: Add CORS Middleware
+
+Update your main.py to include CORSMiddleware with allow_origins=["*"]. This tells the browser "yes, anyone can call this API."​
+
+Replace your entire main.py with this:
+
+python
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List
+
+app = FastAPI()
+
+# ✅ ADD THIS BLOCK — fixes the NetworkError
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],        # Allow all origins
+    allow_credentials=True,
+    allow_methods=["*"],        # Allow POST, GET, OPTIONS, etc.
+    allow_headers=["*"],        # Allow all headers
+)
 
 # --- Step A: Define what the INPUT looks like ---
 class SentimentRequest(BaseModel):
@@ -55,3 +81,4 @@ def get_sentiment(request: SentimentRequest):
         sentiment = analyze_sentiment(sentence)
         results.append(SentimentResult(sentence=sentence, sentiment=sentiment))
     return SentimentResponse(results=results)
+
